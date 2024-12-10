@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Chatbot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        .chat-box {
+            width: 100%;
+            max-width: 700px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        .key-topic {
+            font-weight: 600;
+            color: #ff7b5f;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px;
+            border-radius: 20px;
+            font-size: 1.1em;
+            line-height: 1.5;
+            word-wrap: break-word;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .user {
+            background-color: #007bff;
+            color: #fff;
+            align-self: flex-start;
+        }
+
+        .bot {
+            background-color: #f1f1f1;
+            color: #333;
+            align-self: flex-end;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 30px;
+            border: 2px solid #ddd;
+            font-size: 1.1em;
+            margin-top: 10px;
+            transition: border-color 0.3s ease;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus {
+            border-color: #007bff;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #ff7b5f;
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #e36d56;
+        }
+
+        button:active {
+            background-color: #d35f4b;
+        }
+
+        .message-container {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .message p {
+            margin: 0;
+        }
+
+        /* Smooth Scroll */
+        .chat-container {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-box">
+        <div class="key-topic" id="keyTopic">건강 관련 팁 및 정보</div>
+        <div class="chat-container" id="chat"></div>
+        <input type="text" id="messageInput" placeholder="예: 두통이 있을 때 어떻게 해야 하나요?" onkeydown="handleKeyPress(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        // 서버에서 대표 키워드 가져오기
+        fetch('/keytopic')
+            .then(response => response.json())
+            .then(data => {
+                const keyTopicDiv = document.getElementById('keyTopic');
+                keyTopicDiv.textContent = `대표 키워드: ${data.keytopic}`;
+            })
+            .catch(error => {
+                const keyTopicDiv = document.getElementById('keyTopic');
+                keyTopicDiv.textContent = "대표 키워드 로드 실패";
+            });
+
+        // 메시지 전송 함수
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const chatBox = document.getElementById('chat');
+            const userMessage = input.value.trim();
+
+            if (!userMessage) return;
+
+            // 사용자 메시지 추가
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user';
+            userDiv.textContent = `You: ${userMessage}`;
+            chatBox.appendChild(userDiv);
+
+            // 입력 초기화
+            input.value = '';
+
+            // 서버에 메시지 전송
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const botMessage = data.message || data.error;
+                const botDiv = document.createElement('div');
+                botDiv.className = 'message bot';
+                botDiv.textContent = `Bot: ${botMessage}`;
+                chatBox.appendChild(botDiv);
+
+                // 스크롤을 아래로 이동
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message bot';
+                errorDiv.textContent = 'Bot: Error occurred!';
+                chatBox.appendChild(errorDiv);
+            });
+        }
+
+        // Enter 키 처리 함수
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+                event.preventDefault(); // 기본 Enter 동작 방지
+            }
+        }
+    </script>
+</body>
+</html>
